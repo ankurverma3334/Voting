@@ -1,15 +1,94 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <script type="module">
-// Import the functions you need from the SDKs you need
-import { initializeApp } from "firebase/app";
-import { getAnalytics } from "firebase/analytics";
-// TODO: Add SDKs for Firebase products that you want to use
-// https://firebase.google.com/docs/web/setup#available-libraries
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Name Collector</title>
+    <!-- Firebase SDK -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/firebase/9.23.0/firebase-app-compat.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/firebase/9.23.0/firebase-database-compat.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        .form-container {
+            margin-bottom: 30px;
+        }
+        .submissions {
+            border-top: 1px solid #ccc;
+            padding-top: 20px;
+        }
+        input[type="text"] {
+            padding: 8px;
+            font-size: 16px;
+            width: 200px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        button {
+            padding: 8px 16px;
+            font-size: 16px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        .submission-item {
+            padding: 8px;
+            margin: 4px 0;
+            background-color: #f8f8f8;
+            border-radius: 4px;
+            animation: fadeIn 0.5s;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        #status {
+            color: #666;
+            font-style: italic;
+            margin-bottom: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Name Collector</h1>
+        
+        <div id="status">Connecting to database...</div>
+        
+        <div class="form-container">
+            <form id="nameForm">
+                <input type="text" id="nameInput" placeholder="Enter your name" required>
+                <button type="submit">Submit</button>
+            </form>
+        </div>
 
-// Your web app's Firebase configuration
-// For Firebase JS SDK v7.20.0 and later, measurementId is optional
+        <div class="submissions">
+            <h2>Submitted Names</h2>
+            <div id="submissionsList"></div>
+        </div>
+    </div>
+
+    <script>
+        // Initialize Firebase
+        // Replace these config values with your Firebase project settings
+      // For Firebase JS SDK v7.20.0 and later, measurementId is optional
 const firebaseConfig = {
   apiKey: "AIzaSyAmgpPC61bBdI9yKGraRnYPKj1aBPA-kcE",
   authDomain: "votingteamname.firebaseapp.com",
@@ -20,187 +99,54 @@ const firebaseConfig = {
   measurementId: "G-T03P776B1P"
 };
 
-// Initialize Firebase
-const app = initializeApp(firebaseConfig);
-const analytics = getAnalytics(app);
-</script>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Interactive Voting</title>
-    <style>
-        body {
-            font-family: 'Arial', sans-serif;
-            background-color: #f4f4f4;
-            color: #333;
-            margin: 0;
-            display: flex;
-            flex-direction: column;
-            min-height: 100vh;
-        }
+        // Initialize Firebase
+        firebase.initializeApp(firebaseConfig);
+        const database = firebase.database();
+        const namesRef = database.ref('names');
 
-        .container {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 20px;
-            padding: 20px;
-            max-width: 900px;
-            margin: 20px auto;
-        }
-
-        .column {
-            border-radius: 8px;
-            padding: 20px;
-            background-color: white;
-            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
-        }
-
-        h2 {
-            color: #007bff;
-        }
-
-        .item {
-            display: flex;
-            align-items: center;
-            margin-bottom: 10px;
-            padding: 8px;
-            border-bottom: 1px solid #eee;
-            justify-content: space-between;
-        }
-
-        .count {
-            margin-left: 10px;
-            font-weight: bold;
-            color: #007bff;
-            margin-right: 10px;
-        }
-
-        .item button {
-            background-color: #007bff;
-            color: white;
-            border: none;
-            padding: 8px 16px;
-            border-radius: 5px;
-            cursor: pointer;
-            transition: background-color 0.3s ease;
-            flex-shrink: 0;
-            margin-left: 10px;
-        }
-
-        button:hover {
-            background-color: #0056b3;
-        }
-
-        input[type="text"] {
-            padding: 8px;
-            border: 1px solid #ccc;
-            border-radius: 5px;
-            margin-right: 10px;
-        }
-
-        .added-by {
-            margin-top: 10px;
-            font-size: smaller;
-            color: #777;
-        }
-
-        #added-by-section {
-            margin-top: 20px;
-            text-align: center;
-        }
-
-        #complete-button {
-            background-color: #28a745;
-            color: white;
-            border: none;
-            padding: 10px 20px;
-            border-radius: 5px;
-            cursor: pointer;
-            margin: 20px auto;
-            display: block;
-            transition: background-color 0.3s ease;
-        }
-
-        #complete-button:hover {
-            background-color: #1e7e34;
-        }
-    </style>
-</head>
-<body>
-
-    <div class="container">
-        <div class="column">
-            <h2>Vote for Existing Options</h2>
-            <ul id="vote-list">
-            </ul>
-        </div>
-        <div class="column">
-            <h2>Add New Option</h2>
-            <input type="text" id="new-option-name" placeholder="Enter new option">
-            <button onclick="addNewOption()">Submit</button>
-        </div>
-    </div>
-
-    <div id="added-by-section"></div>
-
-    <button id="complete-button" onclick="completeVoting()">Complete</button>
-
-    <script>
-        let voterName = prompt("Please enter your name:");
-        if (voterName === null || voterName.trim() === "") {
-            voterName = "Anonymous";
-        }
-
-        const voteList = document.getElementById("vote-list");
-        const newOptionNameInput = document.getElementById("new-option-name");
-        const addedBySection = document.getElementById("added-by-section");
-        const completeButton = document.getElementById("complete-button");
-
-        let options = [];
-        let voted = {};
-
-        function addVote(optionName) {
-            if (!voted[voterName]) {
-                voted[voterName] = {};
-            }
-
-            if (!voted[voterName][optionName]) {
-                const option = options.find(opt => opt.name === optionName);
-                if (option) {
-                    option.count++;
-                    voted[voterName][optionName] = true;
-                    updateVoteList();
-                }
+        // Update status when connected
+        database.ref('.info/connected').on('value', (snap) => {
+            const status = document.getElementById('status');
+            if (snap.val() === true) {
+                status.textContent = 'Connected to database';
+                setTimeout(() => status.style.display = 'none', 2000);
             } else {
-                alert("You have already voted for this option.");
+                status.style.display = 'block';
+                status.textContent = 'Connecting to database...';
             }
+        });
+
+        // Listen for new submissions
+        namesRef.on('child_added', (snapshot) => {
+            const submission = snapshot.val();
+            addNameToList(submission);
+        });
+
+        function addNameToList(submission) {
+            const submissionsList = document.getElementById('submissionsList');
+            const div = document.createElement('div');
+            div.className = 'submission-item';
+            div.textContent = `${submission.name} - ${new Date(submission.date).toLocaleString()}`;
+            submissionsList.insertBefore(div, submissionsList.firstChild);
         }
 
-        function addNewOption() {
-            const newName = newOptionNameInput.value.trim();
-            if (newName !== "") {
-                options.push({ name: newName, count: 1, addedBy: voterName });
-                updateVoteList();
-                newOptionNameInput.value = "";
+        // Form submission handler
+        document.getElementById('nameForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const nameInput = document.getElementById('nameInput');
+            const name = nameInput.value.trim();
+            
+            if (name) {
+                // Push new name to Firebase
+                namesRef.push({
+                    name: name,
+                    date: new Date().toISOString()
+                });
+                
+                nameInput.value = '';
             }
-        }
-
-        function updateVoteList() {
-            voteList.innerHTML = "";
-            addedBySection.innerHTML = "";
-
-            options.forEach(option => {
-                const li = document.createElement("li");
-                li.className = "item";
-                li.innerHTML = `${option.name} <span class="count">${option.count}</span> <button onclick="addVote('${option.name}')">+</button>`;
-                voteList.appendChild(li);
-                addedBySection.innerHTML += `<p class="added-by">${option.name} (Added by ${option.addedBy})</p>`;
-            });
-        }
-
-        function completeVoting() {
-            alert("Voting completed!");
-        }
+        });
     </script>
-
 </body>
 </html>
